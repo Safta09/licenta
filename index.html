@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="ro">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Monitorizare RFID - Licenta Access Control</title>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        margin: 30px;
+        background: #f4f7f6;
+        color: #333;
+      }
+      h2 {
+        color: #0056b3;
+      }
+      .card {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+      }
+      th,
+      td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+      }
+      th {
+        background: #007bff;
+        color: white;
+      }
+      tr:hover {
+        background-color: #f1f1f1;
+      }
+      .granted {
+        color: #28a745;
+        font-weight: bold;
+      }
+      .denied {
+        color: #dc3545;
+        font-weight: bold;
+      }
+      .status-badge {
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.9em;
+      }
+      .badge-granted {
+        background: #d4edda;
+        color: #155724;
+      }
+      .badge-denied {
+        background: #f8d7da;
+        color: #721c24;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h2>Monitorizare Scanări RFID - Istoric PostgreSQL</h2>
+      <p>Actualizare automată la fiecare 2 secunde</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>ID Log</th>
+            <th>UID Card</th>
+            <th>Nume Utilizator</th>
+            <th>Stare Acces</th>
+            <th>Data & Ora Scanării</th>
+          </tr>
+        </thead>
+        <tbody id="logs-table">
+          <tr>
+            <td colspan="5">Se încarcă datele...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <script>
+      async function fetchLogs() {
+        try {
+          const res = await fetch("/api/logs");
+          const data = await res.json();
+          const tbody = document.getElementById("logs-table");
+          tbody.innerHTML = "";
+
+          if (data.length === 0) {
+            tbody.innerHTML =
+              '<tr><td colspan="5">Nu există nicio scanare înregistrată încă.</td></tr>';
+            return;
+          }
+
+          data.forEach((log) => {
+            const row = document.createElement("tr");
+            const isGranted = log.access_granted;
+            const dateFormatted = new Date(log.scanned_at).toLocaleString(
+              "ro-RO",
+            );
+
+            row.innerHTML = `
+                        <td>${log.id}</td>
+                        <td><code>${log.uid}</code></td>
+                        <td><strong>${log.name}</strong></td>
+                        <td>
+                            <span class="status-badge ${isGranted ? "badge-granted" : "badge-denied"}">
+                                ${isGranted ? "✔ ACCESS GRANTED" : "✖ ACCESS DENIED"}
+                            </span>
+                        </td>
+                        <td>${dateFormatted}</td>
+                    `;
+            tbody.appendChild(row);
+          });
+        } catch (err) {
+          console.error("Eroare încărcare loguri:", err);
+        }
+      }
+
+      fetchLogs();
+      setInterval(fetchLogs, 2000);
+    </script>
+  </body>
+</html>
